@@ -1,0 +1,40 @@
+--check if period start date and period end date are in line with a full calender month, it is important given the spend are both in monthly unit 
+select distinct month(period_start_date), date(period_start_date), date(period_end_date)
+from payments
+where year(period_start_date)=2021
+order by 2 
+
+-- Q1,Q2
+--assumptions: net $ rentention : rev after adjustment; gross $ rentention: before adjustment
+select sum(month_spend_adjust) net_dollor_rention
+      , sum(month_start_spend) gross_dolllor_rention 
+ from payments
+ where year(period_start_date)=2021
+
+--Q3
+--INSERT into Payments (customer_type) don't have right to insert to tables 
+ select a.* 
+      , p.*
+      , case when month_spend_adjust>0 and month_start_spend=0 then 'new business'
+             when a.churn_date is not null and month_spend_adjust=0 then 'churn'
+             when a.churn_date is not null and month_spend_adjust >0 and period_start_date> churn_date then 'churn_return'
+             when month_spend_adjust<month_start_spend then 'contraction customer'
+             when month_spend_adjust=month_start_spend and month_start_spend=0 and period_start_date< conversion_date then 'trial customer'
+             else 'retention'
+         end as Customer_type
+ 
+ from accounts a 
+ left join payments p on a.id=p.account_id
+ where conversion_date is not null
+ order by a.id, p.period_start_date
+
+--trending
+select period_start_date::date
+      , period_end_date:: date
+      , sum(month_start_spend) gdr
+      , sum(month_spend_adjust) ndr
+ from payments
+ where year(period_start_date)=2021
+ group by 1,2
+ order by 2
+ 
